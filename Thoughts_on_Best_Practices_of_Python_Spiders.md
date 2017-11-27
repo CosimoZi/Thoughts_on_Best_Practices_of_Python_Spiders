@@ -1,4 +1,4 @@
-# 爬虫的最佳实践
+# 关于爬虫最佳实践的一些想法
 
 本文的目的并不在于向读者事无巨细地介绍如何去写各式各样的爬虫.毕竟现在网上这类教程可谓汗牛充栋，随意地搜索即可得到类似下图这样的教程.本文意图通过介绍使用Python(也有一些javascript的内容)进行http请求(以及解析html)的一些方法,和这些方法之间的关系,来说明(作者认为的)Python爬虫的最佳实践是什么样的.它更多的涉及到偏向于设计模式/代码组织等方面的内容.让我们把Python之禅放在本文的开头:
 
@@ -40,7 +40,9 @@
 >
 > Namespaces are one honking great idea -- let's do more of those!
 
-![随意搜索即可得到的爬虫教程目录](随意搜索即可得到的爬虫教程目录.jpg)
+随意搜索即可得到的爬虫教程目录
+
+<img src="随意搜索即可得到的爬虫教程目录.jpg" width = "50%" />
 
 ## 使用Python进行http请求的方法
 
@@ -84,7 +86,7 @@ for url in urls:
         do_something_with_response(r)
 ```
 
-这里的代码似乎已经考虑得很周全了,然而它还是卡死了整个程序.原因是requests的timeout参数仅对连接过程有效,与响应体的下载无关.chaos遇到的问题就是服务器常常莫名其妙地迟迟不给客户端回传响应体,导致整个程序卡死.当然这并不是requests库的缺陷.当时,我只能写了另外的Timeout类临时补上这个漏洞.也许你会说这只是代码没有考虑周全,但我认为,如果我们能使用正确的模式来规避可能的错误,那为什么不呢?
+这里的代码似乎已经考虑得很周全了,然而它还是卡死了整个程序.原因是requests的timeout参数仅对连接过程有效,与响应体的下载无关.chaos遇到的问题就是服务器常常莫名其妙地迟迟不给客户端回传响应体,导致整个程序卡死.当然这并不是requests库的缺陷,而只是之前我们并不了解这一特性.当时,我只能写了另外的Timeout类临时补上这个漏洞.也许你会说这只是代码没有考虑周全,但我认为,如果我们能使用正确的模式来规避可能的错误,那为什么不呢?
 
 现代的web应用使用session(通常通过cookie来实现)使得http请求有了状态.那么,我们就应当通过无顺序关系的并发来管理没有状态相关的请求,而通过请求之间的顺序来管理有状态相关的请求.在后面的scrapy相关示例里,你会尤为清晰地看到这一点.
 
@@ -133,7 +135,7 @@ xhr.onreadystatechange = () => {
     }
 }
 xhr.open('get', 'http://python.org')
-xhr.send(form)
+xhr.send()
 ```
 
 事实上作为爬虫工程师,最常遇到Twisted的情况是在使用基于Twisted的爬虫框架scrapy时.让我们看看大名鼎鼎的scrapy代码示例(仅spider部分).
@@ -308,7 +310,7 @@ f.get('http://python.org')
 print(f.page_source)
 ```
 
-唯一值得一提的是在遇到iframe元素是,你需要显式的切换到目标所在的frame(之后有需要的话再切回去),这是我看到最多的关于selenium的提问了.
+唯一值得一提的是在遇到iframe元素时,你需要显式的切换到目标所在的frame(之后有需要的话再切回去),这是我看到最多的关于selenium的提问了.
 
 ```python
 driver.switch_to.frame(self.driver.find_element_by_css_selector('#myiframe1'))
@@ -537,6 +539,7 @@ html页面
     </table>
 </td>
 
+test.html
 ```html
 <td colspan="3" style="line-height: 22px;font-size: 12px;">
     <table width="100%" border="0" cellspacing="0" cellpadding="0">
@@ -706,6 +709,8 @@ def parse_html(html):
 data = parse_html(open('test.html', encoding='utf-8').read())
 print(data)
 ```
+
+可以看到这里有3个映射,一是从我们需要的key名到html标签名的映射,二是从html标签名到raw data的映射,3是从raw data到processed data的映射.最终我们通过一行简单的声明语句将提取后的数据返回
 
 ### 吐槽下前同事的代码
 
